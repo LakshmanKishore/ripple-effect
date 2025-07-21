@@ -1,80 +1,70 @@
 import "./styles.css"
-
-import { PlayerId } from "rune-sdk"
-
-import selectSoundAudio from "./assets/select.wav"
-import { Cells } from "./logic.ts"
+import type { GameState, Cell } from "./logic"
+import { nanobotSVG } from "./assets/nanobot.ts"
 
 const board = document.getElementById("board")!
 const playersSection = document.getElementById("playersSection")!
 
-const selectSound = new Audio(selectSoundAudio)
+let playerColors: { [key: string]: string } = {}
 
-let cellButtons: HTMLButtonElement[], playerContainers: HTMLLIElement[]
+function getCellHtml(cell: Cell, cellIndex: number, game: GameState) {
+  let content = ""
+  if (cell.owner) {
+    const color = playerColors[cell.owner]
+    content = `<div class="nanobot-container">${`<div class="nanobot" style="background-color: ${color};"></div>`.repeat(cell.count)}</div>`
+  }
+  return `<button class="cell" data-cell-index="${cellIndex}">${content}</button>`
+}
 
-function initUI(
-  cells: Cells,
-  playerIds: PlayerId[],
-  yourPlayerId: PlayerId | undefined
-) {
-  cellButtons = cells.map((_, cellIndex) => {
-    const button = document.createElement("button")
-    button.addEventListener("click", () => Rune.actions.claimCell(cellIndex))
-    board.appendChild(button)
+function render(game: GameState, yourPlayerId: string | undefined) {
+  // Render board
+  board.innerHTML = game.cells.map((cell, i) => getCellHtml(cell, i, game)).join("")
 
-    return button
-  })
+  // Attach event listeners
+  for (const cellEl of board.querySelectorAll(".cell")) {
+    cellEl.addEventListener("click", () => {
+      const cellIndex = parseInt((cellEl as HTMLElement).dataset.cellIndex!)
+      Rune.actions.placeBot(cellIndex)
+    })
+  }
 
-  playerContainers = playerIds.map((playerId, index) => {
-    const player = Rune.getPlayerInfo(playerId)
+  // Render players
+  playersSection.innerHTML = game.playerIds
+    .map((playerId) => {
+      const player = game.players[playerId]
+      const isYou = playerId === yourPlayerId
+      const isTurn = playerId === game.turn
+      const playerInfo = Rune.getPlayerInfo(playerId)
 
-    const li = document.createElement("li")
-    li.setAttribute("player", index.toString())
-    li.innerHTML = `<img src="${player.avatarUrl}" />
-           <span>${
-             player.displayName +
-             (player.playerId === yourPlayerId ? "<br>(You)" : "")
-           }</span>`
-    playersSection.appendChild(li)
-
-    return li
-  })
+      return `
+        <li style="--player-color: ${player.color}" class="${isTurn ? 'your-turn' : ''} ${player.isEliminated ? 'eliminated' : ''}">
+          <img src="${playerInfo.avatarUrl}" />
+          <span>${playerInfo.displayName}${isYou ? " (You)" : ""}</span>
+        </li>
+      `
+    })
+    .join("")
+    
+    // Show winner
+    if (game.winner) {
+        const winnerInfo = Rune.getPlayerInfo(game.winner)
+        const winnerColor = playerColors[game.winner]
+        board.innerHTML += `<div class="winner-overlay" style="--winner-color: ${winnerColor}">
+            <h2>${winnerInfo.displayName} Wins!</h2>
+        </div>`
+    }
+    
+    // Set nanobot icon as a CSS variable
+    document.documentElement.style.setProperty('--nanobot-icon', `url("data:image/svg+xml,${encodeURIComponent(nanobotSVG)}")`);
 }
 
 Rune.initClient({
-  onChange: ({ game, yourPlayerId, action }) => {
-    const { cells, playerIds, winCombo, lastMovePlayerId, freeCells } = game
-
-    if (!cellButtons) initUI(cells, playerIds, yourPlayerId)
-
-    if (lastMovePlayerId) board.classList.remove("initial")
-
-    cellButtons.forEach((button, i) => {
-      const cellValue = cells[i]
-
-      button.setAttribute(
-        "player",
-        (cellValue !== null ? playerIds.indexOf(cellValue) : -1).toString()
-      )
-      button.setAttribute(
-        "dim",
-        String((winCombo && !winCombo.includes(i)) || (!freeCells && !winCombo))
-      )
-
-      if (cells[i] || lastMovePlayerId === yourPlayerId || winCombo) {
-        button.setAttribute("disabled", "")
-      } else {
-        button.removeAttribute("disabled")
-      }
-    })
-
-    playerContainers.forEach((container, i) => {
-      container.setAttribute(
-        "your-turn",
-        String(playerIds[i] !== lastMovePlayerId && !winCombo && freeCells)
-      )
-    })
-
-    if (action && action.name === "claimCell") selectSound.play()
+  onChange: ({ game, yourPlayerId }) => {
+    if (!Object.keys(playerColors).length) {
+        for(const pId in game.players) {
+            playerColors[pId] = game.players[pId].color
+        }
+    }
+    render(game, yourPlayerId)
   },
 })
