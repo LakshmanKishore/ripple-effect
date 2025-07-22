@@ -138,3 +138,9 @@ main {
     text-shadow: 0 0 15px var(--winner-color);
     font-size: 2.5rem;
 }
+
+/* AI Turn Overlay */
+.ai-turn #board {
+  opacity: 0.6;
+  pointer-events: none;
+}

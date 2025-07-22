@@ -14,6 +14,24 @@ This game was built using the Rune platform, with the game logic written in Type
 6.  **Player Elimination**: Players are eliminated when they have no nanobots left on the board.
 7.  **Win Condition**: The last player with nanobots on the board wins the game.
 
+## AI Bot Implementation
+
+This game includes an AI bot that can play against human players. The bot's implementation follows a client-side AI approach, integrated seamlessly with the game's turn-based logic.
+
+### Logic-Side (src/logic.ts)
+
+-   **Bot Turn Flag**: The `GameState` includes an `isAiTurn` flag to indicate when it's the AI's turn to move.
+-   **Action Handling**: The `place` action is designed to handle moves from both human players and the AI bot. A `fromBot` parameter is passed with the action to distinguish between human and AI moves.
+-   **Turn Advancement**: After a human player's move, if the game is set up for single-player (human vs. AI), the `isAiTurn` flag is set to `true`, signaling the client to initiate the AI's turn.
+
+### Client-Side (src/client.ts)
+
+-   **Bot Move Detection**: The `onChange` callback in `Rune.initClient` monitors the `game.isAiTurn` flag. When it's `true`, the client-side AI logic is triggered.
+-   **Delayed Bot Move**: To provide a more natural feel, the AI's move is scheduled with a short delay (e.g., 1 second) using `setTimeout`.
+-   **AI Decision-Making**: The bot's move is determined by a simple random selection among valid cells. It checks for cells that are either empty or already owned by the AI.
+-   **Executing the Bot Move**: Once a cell is chosen, `Rune.actions.place` is called with the selected `cellIndex` and `fromBot: true`, ensuring the move is processed through the same game logic as human moves.
+-   **UI Disabling**: During the AI's turn, the UI is visually dimmed, and user input (cell clicks) is disabled to prevent human interference.
+
 ## Development on Termux
 
 To set up a development environment on Termux, you'll need to install Node.js, Git, and the Gemini CLI.
