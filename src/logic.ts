@@ -5,6 +5,7 @@ import { nanobotSVG } from "./assets/nanobot.ts"
 const GRID_WIDTH = 6
 const GRID_HEIGHT = 9
 const TOTAL_CELLS = GRID_WIDTH * GRID_HEIGHT
+const MAX_EXPLOSION_ITERATIONS = TOTAL_CELLS * 3 // Safety limit to prevent infinite loops/hangs
 
 // Helper to get cell capacity
 const getCapacity = (index: number) => {
@@ -140,7 +141,14 @@ const processMove = (cellIndex: number, actualPlayer: PlayerId, game: GameState)
     console.log("logic.ts: Cell exploded. cellIndex:", cellIndex)
   }
 
+  let iterations = 0;
   while (explosionQueue.length > 0) {
+    iterations++;
+    if (iterations > MAX_EXPLOSION_ITERATIONS) {
+      console.error("logic.ts: Max explosion iterations exceeded. Aborting to prevent hang.");
+      throw Rune.invalidAction("Max explosion iterations exceeded. Game state might be unstable.");
+    }
+
     const currentCellIndex = explosionQueue.shift()!
     const currentCell = game.cells[currentCellIndex]
 
@@ -209,3 +217,5 @@ const processMove = (cellIndex: number, actualPlayer: PlayerId, game: GameState)
     console.log("logic.ts: Turn advanced. Next turn:", game.turn, "game.isAiTurn:", game.isAiTurn)
   }
 }
+
+

@@ -15,7 +15,7 @@ function getPlayerInfo(playerId: string) {
   if (playerId === "ai") {
     return {
       displayName: "AI Bot",
-      avatarUrl: `data:image/svg+xml,${encodeURIComponent(nanobotSVG)}`,
+      avatarUrl: `data:image/svg+xml,${encodeURIComponent(`<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="5" fill="black"/></svg>`)}`,
       playerId: "ai",
     }
   }
@@ -26,7 +26,8 @@ function getCellHtml(cell: Cell, cellIndex: number, game: GameState) {
   let content = ""
   if (cell.owner) {
     const color = playerColors[cell.owner]
-    content = `<div class="nanobot-container">${`<div class="nanobot" style="background-color: ${color};"></div>`.repeat(cell.count)}</div>`
+    const coloredNanobot = nanobotSVG.replace(/#4d79ff/g, color)
+    content = `<div class="nanobot-container nanobot-count-${cell.count}" style="--player-color: ${color};">${`<div class="nanobot">${coloredNanobot}</div>`.repeat(cell.count)}</div>`
   }
   return `<button class="cell" data-cell-index="${cellIndex}">${content}</button>`
 }
