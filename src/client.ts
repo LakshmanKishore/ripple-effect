@@ -3,7 +3,7 @@ import type { GameState, Cell } from "./logic"
 import { nanobotSVG } from "./assets/nanobot.ts"
 
 const board = document.getElementById("board")!
-const turnDisplay = document.getElementById("turnDisplay")!
+const turnIndicatorContainer = document.getElementById("turn-indicator-container")!
 
 let playerColors: { [key: string]: string } = {}
 
@@ -26,8 +26,17 @@ function getCellHtml(cell: Cell, cellIndex: number, game: GameState) {
   let content = ""
   if (cell.owner) {
     const color = playerColors[cell.owner]
-    const coloredNanobot = nanobotSVG.replace(/#4d79ff/g, color)
-    content = `<div class="nanobot-container nanobot-count-${cell.count}" style="--player-color: ${color};">${`<div class="nanobot">${coloredNanobot}</div>`.repeat(cell.count)}</div>`
+    const isOverloaded = cell.count > cell.capacity;
+    
+    let containerClass = "nanobot-container";
+    if (isOverloaded) {
+      containerClass += " overloaded";
+    } else {
+      containerClass += ` nanobot-count-${cell.count}`;
+    }
+
+    const nanobotContent = `<div class="nanobot"></div>`.repeat(cell.count);
+    content = `<div class="${containerClass}" style="--player-color: ${color};">${nanobotContent}</div>`
   }
   return `<button class="cell" data-cell-index="${cellIndex}">${content}</button>`
 }
@@ -35,7 +44,7 @@ function getCellHtml(cell: Cell, cellIndex: number, game: GameState) {
 // This function will be called by the event listener.
 function handleCellClick(event: Event) {
   const cellEl = event.currentTarget as HTMLElement;
-  const cellIndex = parseInt(cellEl.dataset.cellIndex!);
+  const cellIndex = parseInt(cellEl.dataset.cellIndex!)
 
   if (currentGame && (currentGame.isAiTurn || currentGame.explosionQueue.length > 0)) {
     return;
@@ -59,20 +68,15 @@ function render(game: GameState, yourPlayerId: string | undefined) {
 
   // Attach event listeners and set disabled state
   for (const cellEl of board.querySelectorAll(".cell")) {
-    // Remove existing listener to prevent duplicates
     cellEl.removeEventListener("click", handleCellClick);
-
-    // Attach new listener
     cellEl.addEventListener("click", handleCellClick);
-
-    // Disable individual cells if it's AI's turn or explosion is in progress
     (cellEl as HTMLButtonElement).disabled = game.isAiTurn || game.explosionQueue.length > 0;
   }
 
   // Render current turn display
   const currentPlayerInfo = getPlayerInfo(game.turn);
   const currentPlayerColor = game.players[game.turn].color;
-  turnDisplay.innerHTML = `
+  turnIndicatorContainer.innerHTML = `
     <div class="turn-indicator" style="--player-color: ${currentPlayerColor}">
       <img src="${currentPlayerInfo.avatarUrl}" />
       <span>${currentPlayerInfo.displayName}'s Turn</span>

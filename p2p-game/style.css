@@ -1,0 +1,55 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+#connection-status {
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+button {
+    margin: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+}
+
+textarea {
+    width: 80%;
+    height: 100px;
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+#game-area {
+    margin-top: 30px;
+    border: 1px solid #eee;
+    padding: 20px;
+    width: 80%;
+    max-width: 600px;
+    text-align: center;
+}
+
+#game-messages {
+    border: 1px solid #ddd;
+    height: 150px;
+    overflow-y: scroll;
+    margin-bottom: 10px;
+    padding: 10px;
+    text-align: left;
+}
+
+#message-input {
+    width: calc(100% - 70px);
+    padding: 8px;
+    margin-right: 5px;
+}
+
+#send-message {
+    padding: 8px 12px;
+}

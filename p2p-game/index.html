@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P WebRTC Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>P2P WebRTC Game</h1>
+    <div id="connection-status">Connecting...</div>
+    <button id="create-offer">Create Offer</button>
+    <textarea id="sdp-offer" placeholder="Paste SDP Offer here"></textarea>
+    
+    <button id="send-offer">Receive Offer & Create Answer</button>
+    <textarea id="sdp-answer" placeholder="Paste SDP Answer here"></textarea>
+    
+    <button id="send-answer">Send Answer</button>
+    <h2>ICE Candidates</h2>
+    <p>Copy your generated ICE candidates from the console and paste them into the other peer's "Remote ICE Candidates" textarea.</p>
+    <textarea id="local-ice-candidates" placeholder="Your Local ICE Candidates (read-only)" readonly></textarea>
+    
+    <textarea id="remote-ice-candidates" placeholder="Paste Remote ICE Candidates here (one per line) or paste scanned QR data"></textarea>
+    <button id="add-remote-ice-candidates">Add Remote ICE Candidates</button>
+
+    <div id="bluetooth-controls">
+        <button id="advertise">Advertise via Bluetooth</button>
+        <button id="scan">Scan for Devices</button>
+        <div id="bluetooth-status"></div>
+    </div>
+    <div id="game-area">
+        <!-- Game content will go here -->
+        <p>Game messages:</p>
+        <div id="game-messages"></div>
+        <input type="text" id="message-input" placeholder="Type a message">
+        <button id="send-message">Send</button>
+    </div>
+
+    
+
+    <script src="script.js"></script>
+</body>
+</html>

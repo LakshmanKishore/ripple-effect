@@ -4,89 +4,125 @@
 }
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --neon-blue: #00e5ff;
+  --neon-pink: #ff33ff;
+  --neon-green: #00ff95;
+  --dark-purple: #2a0f4a;
+  --bg-color: #10081c;
+  --border-color: rgba(0, 229, 255, 0.4);
 }
 
 body, html {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh; /* Use viewport height */
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: center; /* Center content vertically */
   align-items: center;
-  overflow: hidden; /* Prevent scrolling */
+  overflow: hidden;
+  background-color: var(--bg-color);
+  background-image: radial-gradient(circle at top left, var(--dark-purple) 0%, transparent 50%),
+    radial-gradient(circle at bottom right, var(--dark-purple) 0%, transparent 60%);
+  font-family: sans-serif;
+  color: white;
 }
 
 main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  width: 100%;
 }
 
-/* Turn Display */
-#turnDisplay {
-  margin-bottom: 20px;
+/* Header */
+header {
+  padding: 0;
+  text-align: center;
+  margin-bottom: 1vh; /* Use viewport height for spacing */
+}
+
+.game-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--neon-blue);
+  text-shadow: 0 0 5px var(--neon-blue), 0 0 18px var(--neon-blue), 0 0 35px var(--neon-pink);
+  animation: pulse-glow 2s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  from {
+    text-shadow: 0 0 5px var(--neon-blue), 0 0 18px var(--neon-blue), 0 0 35px var(--neon-pink);
+  }
+  to {
+    text-shadow: 0 0 8px var(--neon-blue), 0 0 25px var(--neon-blue), 0 0 50px var(--neon-pink);
+  }
+}
+
+/* Turn Indicator */
+#turn-indicator-container {
+  perspective: 800px;
+  margin-bottom: 1vh; /* Use viewport height for spacing */
 }
 
 .turn-indicator {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  background-color: #333;
-  border: 2px solid var(--player-color);
-  box-shadow: 0 0 15px var(--player-color);
-  font-size: 1.2em;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background-color: rgba(36, 15, 68, 0.8);
+  border: 1px solid var(--player-color, var(--neon-blue));
+  box-shadow: 0 0 12px var(--player-color, var(--neon-blue));
+  font-size: 1em;
   font-weight: bold;
+  color: var(--player-color, white);
 }
 
 .turn-indicator img {
-  width: 50px;
-  height: 50px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--player-color, white);
 }
 
 /* Game Board */
 #board {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(9, 1fr);
-  gap: 5px;
-  width: 300px;
-  height: 450px;
+  grid-template-rows: repeat(10, 1fr);
+  gap: 4px;
+
+  /* Final sizing solution */
+  height: 75vh; /* Set height based on viewport */
+  aspect-ratio: 6 / 10; /* Let width be calculated from height */
+  max-width: 95vw; /* Prevent horizontal overflow on wide screens */
+
   position: relative;
+  background-color: rgba(0,0,0,0.3);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 5px;
 }
 
 .cell {
-  background-color: #333;
-  border: 1px solid #444;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  padding: 2px;
-  gap: 2px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.3s, border-color 0.3s;
   position: relative;
+  aspect-ratio: 1 / 1; /* Ensure cells are square */
 }
 
 .cell:hover {
-  background-color: #444;
+  background-color: rgba(0, 229, 255, 0.15);
+  border-color: var(--neon-blue);
 }
 
 .nanobot-container {
@@ -99,8 +135,10 @@ main {
 }
 
 .nanobot {
-  width: 20px;
-  height: 20px;
+  width: 90%;
+  height: 90%;
+  max-width: 22px;
+  max-height: 22px;
   background-color: var(--player-color);
   mask-image: var(--nanobot-icon);
   mask-size: contain;
@@ -110,33 +148,9 @@ main {
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
-  animation: pop-in 0.3s ease;
+  animation: pop-in 0.2s ease-out;
   position: absolute;
-}
-
-.nanobot-count-1 .nanobot:nth-child(1) { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-
-.nanobot-count-2 .nanobot:nth-child(1) { top: 50%; left: calc(50% - 10px); transform: translate(-50%, -50%); }
-.nanobot-count-2 .nanobot:nth-child(2) { top: 50%; left: calc(50% + 10px); transform: translate(-50%, -50%); }
-
-.nanobot-count-3 .nanobot:nth-child(1) { top: calc(50% - 10px); left: 50%; transform: translate(-50%, -50%); }
-.nanobot-count-3 .nanobot:nth-child(2) { top: calc(50% + 5px); left: calc(50% - 10px); transform: translate(-50%, -50%); }
-.nanobot-count-3 .nanobot:nth-child(3) { top: calc(50% + 5px); left: calc(50% + 10px); transform: translate(-50%, -50%); }
-
-.nanobot {
-  width: 20px;
-  height: 20px;
-  background-color: var(--player-color);
-  mask-image: var(--nanobot-icon);
-  mask-size: contain;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  -webkit-mask-image: var(--nanobot-icon);
-  -webkit-mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  animation: pop-in 0.3s ease;
-  position: absolute;
+  filter: drop-shadow(0 0 4px var(--player-color));
 }
 
 .nanobot-count-1 .nanobot:nth-child(1) { top: 50%; left: 50%; transform: translate(-50%, -50%); }
@@ -147,42 +161,68 @@ main {
 .nanobot-count-3 .nanobot:nth-child(1) { top: calc(50% - 8px); left: 50%; transform: translate(-50%, -50%); }
 .nanobot-count-3 .nanobot:nth-child(2) { top: calc(50% + 8px); left: calc(50% - 8px); transform: translate(-50%, -50%); }
 .nanobot-count-3 .nanobot:nth-child(3) { top: calc(50% + 8px); left: calc(50% + 8px); transform: translate(-50%, -50%); }
-  background-color: var(--player-color);
-  mask-image: var(--nanobot-icon);
-  mask-size: contain;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  -webkit-mask-image: var(--nanobot-icon);
-  -webkit-mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  animation: pop-in 0.3s ease;
+
+/* Overload State */
+.overloaded .nanobot {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse-overload 0.5s infinite alternate;
+}
+
+@keyframes pulse-overload {
+    from {
+        transform: translate(-50%, -50%) scale(1);
+        filter: drop-shadow(0 0 4px var(--player-color)) brightness(1);
+    }
+    to {
+        transform: translate(-50%, -50%) scale(1.2);
+        filter: drop-shadow(0 0 10px var(--player-color)) brightness(1.5);
+    }
 }
 
 @keyframes pop-in {
-  from { transform: scale(0); }
-  to { transform: scale(1); }
+  from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
 /* Winner Overlay */
 .winner-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(0,0,0,0.8);
+    background-color: rgba(13, 5, 20, 0.9);
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
+    border-radius: 10px;
 }
 
 .winner-overlay h2 {
     color: var(--winner-color);
-    text-shadow: 0 0 15px var(--winner-color);
+    text-shadow: 0 0 15px var(--winner-color), 0 0 30px var(--winner-color);
     font-size: 2.5rem;
+    animation: winner-pulse 1.5s infinite alternate;
+}
+
+@keyframes winner-pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
 }
 
 /* AI Turn Overlay */
 .ai-turn #board {
   opacity: 0.6;
   pointer-events: none;
+}
+
+.ai-turn .cell {
+  cursor: not-allowed;
+}
+
+/* Responsive Adjustments */
+@media (min-width: 420px) {
+    .game-title {
+        font-size: 2.2rem;
+    }
 }

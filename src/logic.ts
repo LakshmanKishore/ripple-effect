@@ -2,7 +2,7 @@ import type { PlayerId, RuneClient } from "rune-sdk"
 
 // Constants
 const GRID_WIDTH = 6
-const GRID_HEIGHT = 9
+const GRID_HEIGHT = 10
 const TOTAL_CELLS = GRID_WIDTH * GRID_HEIGHT
 const MAX_EXPLOSION_ITERATIONS = TOTAL_CELLS * 3 // Safety limit to prevent infinite loops/hangs
 
@@ -50,7 +50,7 @@ declare global {
   const Rune: RuneClient<GameState, GameActions>
 }
 
-const PLAYER_COLORS = ["#F44336", "#4CAF50", "#2196F3", "#FFEB3B", "#9C27B0", "#FF9800", "#00BCD4"]
+const PLAYER_COLORS = ["#39FF14", "#FF1D58", "#FF7A00", "#F7FF00", "#00C9A7", "#F400A1"]
 
 Rune.initLogic({
   minPlayers: 1,
@@ -173,26 +173,40 @@ Rune.initLogic({
 
   events: {
     playerJoined: (playerId, { game }) => {
+      // Find an available color for the new player
+      const usedColors = new Set(Object.values(game.players).map(p => p.color));
+      let newPlayerColor = PLAYER_COLORS[0]; // Default to the first color
+      for (const color of PLAYER_COLORS) {
+        if (!usedColors.has(color)) {
+          newPlayerColor = color;
+          break;
+        }
+      }
+
       // If a bot is currently playing, replace it with the new player
-      const botIndex = game.playerIds.indexOf("ai")
+      const botIndex = game.playerIds.indexOf("ai");
       if (botIndex !== -1) {
-        game.playerIds[botIndex] = playerId
-        game.players[playerId] = { id: playerId, color: PLAYER_COLORS[botIndex % PLAYER_COLORS.length], isEliminated: false, hasPlacedFirstBot: false }
+        const oldBotColor = game.players["ai"].color;
+        game.playerIds[botIndex] = playerId;
+        game.players[playerId] = { id: playerId, color: oldBotColor, isEliminated: false, hasPlacedFirstBot: false };
+        delete game.players["ai"];
+
         // Transfer bot's nanobots to the new player
         game.cells.forEach(cell => {
           if (cell.owner === "ai") {
-            cell.owner = playerId
+            cell.owner = playerId;
           }
-        })
+        });
+
         // If it was AI's turn, transfer turn to new player
         if (game.turn === "ai") {
-          game.turn = playerId
-          game.isAiTurn = false
+          game.turn = playerId;
+          game.isAiTurn = false;
         }
       } else {
         // Add new player to the game
-        game.playerIds.push(playerId)
-        game.players[playerId] = { id: playerId, color: PLAYER_COLORS[(game.playerIds.length - 1) % PLAYER_COLORS.length], isEliminated: false, hasPlacedFirstBot: false }
+        game.playerIds.push(playerId);
+        game.players[playerId] = { id: playerId, color: newPlayerColor, isEliminated: false, hasPlacedFirstBot: false };
       }
 
       // Adjust turnCount to prevent immediate elimination of new player
@@ -211,12 +225,8 @@ Rune.initLogic({
         game.playerIds[playerIndex] = "ai"
 
         // Find an unused color for the AI
-        let aiColor = "#000000"; // Default to black if no color found
-        const usedColors = new Set(
-          Object.values(game.players)
-            .filter(player => !player.isEliminated) // Only consider active players
-            .map(player => player.color)
-        );
+        const usedColors = new Set(Object.values(game.players).filter(p => p.id !== playerId).map(p => p.color));
+        let aiColor = PLAYER_COLORS[0];
         for (const color of PLAYER_COLORS) {
           if (!usedColors.has(color)) {
             aiColor = color;
@@ -224,7 +234,9 @@ Rune.initLogic({
           }
         }
 
-        game.players["ai"] = { id: "ai", color: aiColor, isEliminated: false }
+        game.players["ai"] = { id: "ai", color: aiColor, isEliminated: false, hasPlacedFirstBot: false }
+        delete game.players[playerId]; // Remove the leaving player's data
+
         // Transfer leaving player's nanobots to the bot
         game.cells.forEach(cell => {
           if (cell.owner === playerId) {
@@ -237,10 +249,10 @@ Rune.initLogic({
           game.isAiTurn = true
         }
       } else {
-        // More than two players, or leaving player is not a human player (e.g., bot leaving)
-        // Remove player from playerIds and eliminate them
+        // More than two players, or leaving player is not a human player
         game.playerIds = game.playerIds.filter(id => id !== playerId)
-        game.players[playerId].isEliminated = true
+        delete game.players[playerId]; // Remove the leaving player's data
+
         // Remove their nanobots from the board
         game.cells.forEach(cell => {
           if (cell.owner === playerId) {
@@ -251,11 +263,15 @@ Rune.initLogic({
         // If it was leaving player's turn, advance turn
         if (game.turn === playerId) {
           let nextPlayerIndex = game.playerIds.indexOf(game.turn)
-          do {
-            nextPlayerIndex = (nextPlayerIndex + 1) % game.playerIds.length
-          } while (game.players[game.playerIds[nextPlayerIndex]].isEliminated)
-          game.turn = game.playerIds[nextPlayerIndex]
-          game.isAiTurn = (game.turn === "ai")
+          if (nextPlayerIndex === -1) nextPlayerIndex = 0; // Reset if turn was on the removed player
+          
+          if(game.playerIds.length > 0) {
+            do {
+              nextPlayerIndex = (nextPlayerIndex + 1) % game.playerIds.length
+            } while (game.players[game.playerIds[nextPlayerIndex]] && game.players[game.playerIds[nextPlayerIndex]].isEliminated)
+            game.turn = game.playerIds[nextPlayerIndex]
+            game.isAiTurn = (game.turn === "ai")
+          }
         }
       }
       // Check for game end conditions after player leaves
