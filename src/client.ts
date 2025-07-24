@@ -37,12 +37,9 @@ function handleCellClick(event: Event) {
   const cellEl = event.currentTarget as HTMLElement;
   const cellIndex = parseInt(cellEl.dataset.cellIndex!);
 
-  // Crucial: Prevent human clicks during AI turn
-  if (currentGame && currentGame.isAiTurn) {
-    console.log("client.ts: Click ignored. AI turn.");
+  if (currentGame && (currentGame.isAiTurn || currentGame.explosionQueue.length > 0)) {
     return;
   }
-  console.log("client.ts: Calling Rune.actions.place for human move. cellIndex:", cellIndex, "fromBot:", false);
   Rune.actions.place({ cellIndex, fromBot: false });
 }
 
@@ -68,8 +65,8 @@ function render(game: GameState, yourPlayerId: string | undefined) {
     // Attach new listener
     cellEl.addEventListener("click", handleCellClick);
 
-    // Disable individual cells if it's AI's turn
-    (cellEl as HTMLButtonElement).disabled = game.isAiTurn;
+    // Disable individual cells if it's AI's turn or explosion is in progress
+    (cellEl as HTMLButtonElement).disabled = game.isAiTurn || game.explosionQueue.length > 0;
   }
 
   // Render players
@@ -103,16 +100,37 @@ function render(game: GameState, yourPlayerId: string | undefined) {
 }
 
 let botMoveTimer: number | null = null;
+let explosionInterval: number | null = null;
+
+function processExplosionQueue() {
+  if (currentGame && currentGame.explosionQueue.length > 0) {
+    Rune.actions.processExplosion();
+  }
+}
 
 Rune.initClient({
   onChange: ({ game, yourPlayerId }) => {
-    console.log("client.ts: onChange triggered. game.turn:", game.turn, "game.isAiTurn:", game.isAiTurn)
+    currentGame = game; // Keep a global reference to the latest game state
     if (!Object.keys(playerColors).length) {
         for(const pId in game.players) {
             playerColors[pId] = game.players[pId].color
         }
     }
     render(game, yourPlayerId)
+
+    if (explosionInterval) {
+      clearInterval(explosionInterval)
+      explosionInterval = null
+    }
+
+    if (game.explosionQueue.length > 0 && !game.winner) {
+      explosionInterval = setInterval(() => {
+        processExplosionQueue()
+      }, 200)
+    } else if (game.winner && explosionInterval) {
+      clearInterval(explosionInterval)
+      explosionInterval = null
+    }
 
     // Clear any existing bot move timer
     if (botMoveTimer) {
@@ -122,7 +140,6 @@ Rune.initClient({
 
     // AI Logic
     if (game.isAiTurn && !game.winner) {
-      console.log("client.ts: AI logic entered.")
       botMoveTimer = setTimeout(() => {
         const validCells = game.cells.reduce((acc: number[], cell, index) => {
           if (cell.owner === null || cell.owner === "ai") {
@@ -131,16 +148,11 @@ Rune.initClient({
           return acc
         }, [])
 
-        console.log("client.ts: Valid cells for AI:", validCells)
-
         if (validCells.length > 0) {
           const randomIndex = Math.floor(Math.random() * validCells.length)
           const cellToPlay = validCells[randomIndex]
-          console.log("client.ts: AI playing cell:", cellToPlay);
-          console.log("client.ts: Calling Rune.actions.place for AI move. cellToPlay:", cellToPlay, "fromBot:", true);
           Rune.actions.place({ cellIndex: cellToPlay, fromBot: true });
         } else {
-          console.log("client.ts: No valid cells for AI to play.")
         }
         botMoveTimer = null // Clear timer after move
       }, 1000) // 1 second delay for AI move

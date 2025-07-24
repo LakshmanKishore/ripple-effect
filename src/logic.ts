@@ -1,5 +1,4 @@
 import type { PlayerId, RuneClient } from "rune-sdk"
-import { nanobotSVG } from "./assets/nanobot.ts"
 
 // Constants
 const GRID_WIDTH = 6
@@ -37,10 +36,13 @@ export interface GameState {
   winner: PlayerId | null
   turnCount: number
   isAiTurn: boolean
+  explosionQueue: number[]
+  iterationCount: number
 }
 
 type GameActions = {
   place: (args: { cellIndex: number, fromBot?: boolean }) => void
+  processExplosion: () => void
 }
 
 declare global {
@@ -70,6 +72,8 @@ Rune.initLogic({
       winner: null,
       turnCount: 0,
       isAiTurn: false,
+      explosionQueue: [],
+      iterationCount: 0,
     }
 
     playerIds.forEach((id, index) => {
@@ -80,116 +84,101 @@ Rune.initLogic({
       }
     })
 
-    // AI player info is handled on the client-side
-
     return initialState
   },
   
   actions: {
     place: ({ cellIndex, fromBot }, { game, playerId }) => {
-      console.log("logic.ts: place called. cellIndex:", cellIndex, "playerId:", playerId, "fromBot:", fromBot, "game.turn:", game.turn, "game.isAiTurn:", game.isAiTurn)
       if (game.winner) throw Rune.invalidAction()
 
-      const isFromBot = !!fromBot; // Ensure fromBot is a boolean
-
+      const isFromBot = !!fromBot
       let actualPlayer: PlayerId
 
       if (isFromBot) {
         actualPlayer = "ai"
-        if (!game.isAiTurn) {
-          console.error("logic.ts: AI move received but game.isAiTurn is false.")
-          throw Rune.invalidAction("AI move received (fromBot: true) but it's not AI's turn.");
-        }
-        console.log("logic.ts: AI move.")
+        if (!game.isAiTurn) throw Rune.invalidAction("AI move received but it's not AI's turn.")
       } else {
-        // This is a human player's move (fromBot: undefined or false)
-        if (playerId === undefined) {
-          throw Rune.invalidAction("Player ID is undefined for a human move (fromBot: undefined).");
-        }
+        if (playerId === undefined) throw Rune.invalidAction("Player ID is undefined for a human move.")
         actualPlayer = playerId
+        if (game.isAiTurn) throw Rune.invalidAction("Human move received but it's AI's turn.")
+        if (actualPlayer !== game.turn) throw Rune.invalidAction("It's not your turn.")
+      }
 
-        if (game.isAiTurn) {
-          throw Rune.invalidAction("Human move received (fromBot: undefined) but it's AI's turn.");
-        }
+      const cell = game.cells[cellIndex]
+      if (cell.owner !== null && cell.owner !== actualPlayer) throw Rune.invalidAction()
 
-        if (actualPlayer !== game.turn) {
-          console.error("logic.ts: Invalid human player move. Expected turn:", game.turn, "Actual playerId:", actualPlayer)
-          throw Rune.invalidAction("It's not your turn (fromBot: undefined).");
+      cell.count++
+      cell.owner = actualPlayer
+
+      if (cell.count > cell.capacity) {
+        game.explosionQueue.push(cellIndex)
+      }
+
+      game.iterationCount = 0
+
+      if (game.explosionQueue.length === 0) {
+        if (!checkGameEndConditions(game)) {
+          endTurn(game)
         }
       }
-      processMove(cellIndex, actualPlayer, game)
+    },
+
+    processExplosion: (_, { game }) => {
+      if (game.explosionQueue.length === 0) return
+
+      game.iterationCount++
+      if (game.iterationCount > MAX_EXPLOSION_ITERATIONS) {
+        checkGameEndConditions(game) // Force check game end conditions
+        return
+      }
+
+      const currentCellIndex = game.explosionQueue.shift()!
+      const currentCell = game.cells[currentCellIndex]
+      const actualPlayer = currentCell.owner!
+
+      if (currentCell.count <= currentCell.capacity) return
+
+      currentCell.count = 0
+      currentCell.owner = null
+
+      const neighbors = [
+        currentCellIndex - GRID_WIDTH, // Top
+        currentCellIndex + GRID_WIDTH, // Bottom
+        (currentCellIndex + 1) % GRID_WIDTH !== 0 ? currentCellIndex + 1 : -1, // Right
+        currentCellIndex % GRID_WIDTH !== 0 ? currentCellIndex - 1 : -1, // Left
+      ].filter(i => i >= 0 && i < TOTAL_CELLS)
+
+      for (const neighborIndex of neighbors) {
+        const neighborCell = game.cells[neighborIndex]
+        neighborCell.count++
+        neighborCell.owner = actualPlayer
+        if (neighborCell.count > neighborCell.capacity && !game.explosionQueue.includes(neighborIndex)) {
+          game.explosionQueue.push(neighborIndex)
+        }
+      }
+
+      // Check for game end conditions after each explosion step
+      if (checkGameEndConditions(game)) {
+        return // Game ended, stop processing explosions
+      }
+
+      if (game.explosionQueue.length === 0) {
+        endTurn(game)
+      }
     },
   },
 })
 
-const processMove = (cellIndex: number, actualPlayer: PlayerId, game: GameState) => {
-  const cell = game.cells[cellIndex]
-  if (cell.owner !== null && cell.owner !== actualPlayer) {
-    console.error("logic.ts: Invalid cell owner. Cell owner:", cell.owner, "Actual player:", actualPlayer)
-    throw Rune.invalidAction()
-  }
-
-  // 1. Increment cell and set owner
-  cell.count++
-  cell.owner = actualPlayer
-  console.log("logic.ts: Cell updated. cellIndex:", cellIndex, "owner:", cell.owner, "count:", cell.count)
-
-  // 2. Explosion processing
-  const explosionQueue: number[] = []
-  if (cell.count > cell.capacity) {
-    explosionQueue.push(cellIndex)
-    console.log("logic.ts: Cell exploded. cellIndex:", cellIndex)
-  }
-
-  let iterations = 0;
-  while (explosionQueue.length > 0) {
-    iterations++;
-    if (iterations > MAX_EXPLOSION_ITERATIONS) {
-      console.error("logic.ts: Max explosion iterations exceeded. Aborting to prevent hang.");
-      throw Rune.invalidAction("Max explosion iterations exceeded. Game state might be unstable.");
-    }
-
-    const currentCellIndex = explosionQueue.shift()!
-    const currentCell = game.cells[currentCellIndex]
-
-    if (currentCell.count <= currentCell.capacity) continue
-
-    // Reset exploding cell and distribute bots
-    currentCell.count = 0
-    currentCell.owner = null
-    console.log("logic.ts: Exploding cell reset. cellIndex:", currentCellIndex)
-
-    const neighbors = [
-      currentCellIndex - GRID_WIDTH, // Top
-      currentCellIndex + GRID_WIDTH, // Bottom
-      (currentCellIndex + 1) % GRID_WIDTH !== 0 ? currentCellIndex + 1 : -1, // Right
-      currentCellIndex % GRID_WIDTH !== 0 ? currentCellIndex - 1 : -1, // Left
-    ].filter(i => i >= 0 && i < TOTAL_CELLS)
-
-    for (const neighborIndex of neighbors) {
-      const neighborCell = game.cells[neighborIndex]
-      neighborCell.count++
-      neighborCell.owner = actualPlayer
-      console.log("logic.ts: Neighbor updated. neighborIndex:", neighborIndex, "owner:", neighborCell.owner, "count:", neighborCell.count)
-      if (neighborCell.count > neighborCell.capacity) {
-        if (!explosionQueue.includes(neighborIndex)) {
-          explosionQueue.push(neighborIndex)
-          console.log("logic.ts: Neighbor added to explosion queue. neighborIndex:", neighborIndex)
-        }
-      }
-    }
-  }
-
+const checkGameEndConditions = (game: GameState) => {
   // 3. Player Elimination (only after first round)
   if (game.turnCount >= game.playerIds.length) {
     for (const pId of game.playerIds) {
-        if (game.players[pId].isEliminated) continue
+      if (game.players[pId].isEliminated) continue
 
-        const hasBots = game.cells.some(c => c.owner === pId)
-        if (!hasBots) {
-            game.players[pId].isEliminated = true
-            console.log("logic.ts: Player eliminated:", pId)
-        }
+      const hasBots = game.cells.some(c => c.owner === pId)
+      if (!hasBots) {
+        game.players[pId].isEliminated = true
+      }
     }
   }
 
@@ -197,25 +186,37 @@ const processMove = (cellIndex: number, actualPlayer: PlayerId, game: GameState)
   const remainingPlayers = game.playerIds.filter(id => !game.players[id].isEliminated)
   if (remainingPlayers.length <= 1) {
     game.winner = remainingPlayers.length === 1 ? remainingPlayers[0] : null
-    console.log("logic.ts: Game over. Winner:", game.winner)
+
+    const finalPlayerStatuses: Record<PlayerId, "WON" | "LOST"> = {};
+
+    const humanPlayers = game.playerIds.filter(id => id !== "ai");
+
+    humanPlayers.forEach(id => {
+      if (game.winner && id === game.winner) {
+        finalPlayerStatuses[id] = "WON";
+      } else {
+        finalPlayerStatuses[id] = "LOST";
+      }
+    });
+
     Rune.gameOver({
-        players: game.playerIds.reduce((acc, id) => ({
-            ...acc,
-            [id]: game.winner && id === game.winner ? "WON" : "LOST"
-        }), {}),
-        delayPopUp: false
+      players: finalPlayerStatuses,
+      delayPopUp: false
     })
-  } else {
-    // 5. Advance turn
-    let nextPlayerIndex = game.playerIds.indexOf(game.turn)
-    do {
-        nextPlayerIndex = (nextPlayerIndex + 1) % game.playerIds.length
-    } while (game.players[game.playerIds[nextPlayerIndex]].isEliminated)
-    game.turn = game.playerIds[nextPlayerIndex]
-    game.turnCount++
-    game.isAiTurn = (game.turn === "ai") // Set isAiTurn if next is AI
-    console.log("logic.ts: Turn advanced. Next turn:", game.turn, "game.isAiTurn:", game.isAiTurn)
+    return true // Game ended
   }
+  return false // Game not ended
+}
+
+const endTurn = (game: GameState) => {
+  // 5. Advance turn
+  let nextPlayerIndex = game.playerIds.indexOf(game.turn)
+  do {
+    nextPlayerIndex = (nextPlayerIndex + 1) % game.playerIds.length
+  } while (game.players[game.playerIds[nextPlayerIndex]].isEliminated)
+  game.turn = game.playerIds[nextPlayerIndex]
+  game.turnCount++
+  game.isAiTurn = (game.turn === "ai")
 }
 
 
