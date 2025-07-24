@@ -1,4 +1,8 @@
 /* Basic Setup */
+* {
+  box-sizing: border-box;
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -20,6 +24,7 @@ body, html {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden; /* Prevent scrolling */
 }
 
 main {
@@ -29,39 +34,29 @@ main {
   gap: 20px;
 }
 
-/* Player List */
-#playersSection {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  gap: 15px;
+/* Turn Display */
+#turnDisplay {
+  margin-bottom: 20px;
 }
 
-#playersSection li {
+.turn-indicator {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background-color: #333;
+  border: 2px solid var(--player-color);
+  box-shadow: 0 0 15px var(--player-color);
+  font-size: 1.2em;
+  font-weight: bold;
 }
 
-#playersSection li.your-turn {
-  border-color: var(--player-color);
-  box-shadow: 0 0 10px var(--player-color);
-}
-
-#playersSection li.eliminated {
-  opacity: 0.5;
-  filter: grayscale(1);
-}
-
-#playersSection img {
-  width: 40px;
-  height: 40px;
+.turn-indicator img {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
 }
 
 /* Game Board */

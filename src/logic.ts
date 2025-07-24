@@ -31,6 +31,7 @@ export interface GameState {
       id: PlayerId
       color: string
       isEliminated: boolean
+      hasPlacedFirstBot: boolean
     }
   }
   winner: PlayerId | null
@@ -49,7 +50,7 @@ declare global {
   const Rune: RuneClient<GameState, GameActions>
 }
 
-const PLAYER_COLORS = ["#F44336", "#4CAF50", "#2196F3", "#FFEB3B", "#9C27B0", "#FF9800"]
+const PLAYER_COLORS = ["#F44336", "#4CAF50", "#2196F3", "#FFEB3B", "#9C27B0", "#FF9800", "#00BCD4"]
 
 Rune.initLogic({
   minPlayers: 1,
@@ -81,6 +82,7 @@ Rune.initLogic({
         id,
         color: PLAYER_COLORS[index % PLAYER_COLORS.length],
         isEliminated: false,
+        hasPlacedFirstBot: false,
       }
     })
 
@@ -109,6 +111,7 @@ Rune.initLogic({
 
       cell.count++
       cell.owner = actualPlayer
+      game.players[actualPlayer].hasPlacedFirstBot = true
 
       if (cell.count > cell.capacity) {
         game.explosionQueue.push(cellIndex)
@@ -167,6 +170,98 @@ Rune.initLogic({
       }
     },
   },
+
+  events: {
+    playerJoined: (playerId, { game }) => {
+      // If a bot is currently playing, replace it with the new player
+      const botIndex = game.playerIds.indexOf("ai")
+      if (botIndex !== -1) {
+        game.playerIds[botIndex] = playerId
+        game.players[playerId] = { id: playerId, color: PLAYER_COLORS[botIndex % PLAYER_COLORS.length], isEliminated: false, hasPlacedFirstBot: false }
+        // Transfer bot's nanobots to the new player
+        game.cells.forEach(cell => {
+          if (cell.owner === "ai") {
+            cell.owner = playerId
+          }
+        })
+        // If it was AI's turn, transfer turn to new player
+        if (game.turn === "ai") {
+          game.turn = playerId
+          game.isAiTurn = false
+        }
+      } else {
+        // Add new player to the game
+        game.playerIds.push(playerId)
+        game.players[playerId] = { id: playerId, color: PLAYER_COLORS[(game.playerIds.length - 1) % PLAYER_COLORS.length], isEliminated: false, hasPlacedFirstBot: false }
+      }
+
+      // Adjust turnCount to prevent immediate elimination of new player
+      if (game.turnCount >= game.playerIds.length) {
+        game.turnCount = game.playerIds.length - 1;
+      }
+    },
+
+    playerLeft: (playerId, { game }) => {
+      const playerIndex = game.playerIds.indexOf(playerId)
+      if (playerIndex === -1) return // Player not found
+
+      // If only one human player remains, replace the leaving player with a bot
+      const humanPlayers = game.playerIds.filter(id => id !== "ai")
+      if (humanPlayers.length === 2 && humanPlayers.includes(playerId)) {
+        game.playerIds[playerIndex] = "ai"
+
+        // Find an unused color for the AI
+        let aiColor = "#000000"; // Default to black if no color found
+        const usedColors = new Set(
+          Object.values(game.players)
+            .filter(player => !player.isEliminated) // Only consider active players
+            .map(player => player.color)
+        );
+        for (const color of PLAYER_COLORS) {
+          if (!usedColors.has(color)) {
+            aiColor = color;
+            break;
+          }
+        }
+
+        game.players["ai"] = { id: "ai", color: aiColor, isEliminated: false }
+        // Transfer leaving player's nanobots to the bot
+        game.cells.forEach(cell => {
+          if (cell.owner === playerId) {
+            cell.owner = "ai"
+          }
+        })
+        // If it was leaving player's turn, transfer turn to bot
+        if (game.turn === playerId) {
+          game.turn = "ai"
+          game.isAiTurn = true
+        }
+      } else {
+        // More than two players, or leaving player is not a human player (e.g., bot leaving)
+        // Remove player from playerIds and eliminate them
+        game.playerIds = game.playerIds.filter(id => id !== playerId)
+        game.players[playerId].isEliminated = true
+        // Remove their nanobots from the board
+        game.cells.forEach(cell => {
+          if (cell.owner === playerId) {
+            cell.owner = null
+            cell.count = 0
+          }
+        })
+        // If it was leaving player's turn, advance turn
+        if (game.turn === playerId) {
+          let nextPlayerIndex = game.playerIds.indexOf(game.turn)
+          do {
+            nextPlayerIndex = (nextPlayerIndex + 1) % game.playerIds.length
+          } while (game.players[game.playerIds[nextPlayerIndex]].isEliminated)
+          game.turn = game.playerIds[nextPlayerIndex]
+          game.isAiTurn = (game.turn === "ai")
+        }
+      }
+      // Check for game end conditions after player leaves
+      checkGameEndConditions(game)
+    },
+  },
 })
 
 const checkGameEndConditions = (game: GameState) => {
@@ -176,7 +271,7 @@ const checkGameEndConditions = (game: GameState) => {
       if (game.players[pId].isEliminated) continue
 
       const hasBots = game.cells.some(c => c.owner === pId)
-      if (!hasBots) {
+      if (!hasBots && game.players[pId].hasPlacedFirstBot) {
         game.players[pId].isEliminated = true
       }
     }
@@ -209,14 +304,30 @@ const checkGameEndConditions = (game: GameState) => {
 }
 
 const endTurn = (game: GameState) => {
-  // 5. Advance turn
-  let nextPlayerIndex = game.playerIds.indexOf(game.turn)
-  do {
-    nextPlayerIndex = (nextPlayerIndex + 1) % game.playerIds.length
-  } while (game.players[game.playerIds[nextPlayerIndex]].isEliminated)
-  game.turn = game.playerIds[nextPlayerIndex]
-  game.turnCount++
-  game.isAiTurn = (game.turn === "ai")
-}
+  // First, check if the game has already ended.
+  if (checkGameEndConditions(game)) {
+    return; // Game ended, no need to advance turn.
+  }
+
+  let nextPlayerIndex = game.playerIds.indexOf(game.turn);
+
+  // Loop through players to find the next active player
+  for (let i = 0; i < game.playerIds.length; i++) {
+    nextPlayerIndex = (nextPlayerIndex + 1) % game.playerIds.length;
+    const nextPlayerId = game.playerIds[nextPlayerIndex];
+
+    if (!game.players[nextPlayerId].isEliminated) {
+      game.turn = nextPlayerId;
+      game.turnCount++;
+      game.isAiTurn = (game.turn === "ai");
+      return; // Found next active player, turn advanced.
+    }
+  }
+
+  // If we reach here, it means all remaining players are eliminated.
+  // This scenario should ideally be caught by checkGameEndConditions.
+  // If the game is truly stuck, this might indicate a deeper issue.
+  console.error("No active players found to advance turn. Game might be stuck.");
+};
 
 

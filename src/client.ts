@@ -3,7 +3,7 @@ import type { GameState, Cell } from "./logic"
 import { nanobotSVG } from "./assets/nanobot.ts"
 
 const board = document.getElementById("board")!
-const playersSection = document.getElementById("playersSection")!
+const turnDisplay = document.getElementById("turnDisplay")!
 
 let playerColors: { [key: string]: string } = {}
 
@@ -69,22 +69,15 @@ function render(game: GameState, yourPlayerId: string | undefined) {
     (cellEl as HTMLButtonElement).disabled = game.isAiTurn || game.explosionQueue.length > 0;
   }
 
-  // Render players
-  playersSection.innerHTML = game.playerIds
-    .map((playerId) => {
-      const player = game.players[playerId]
-      const isYou = playerId === yourPlayerId
-      const isTurn = playerId === game.turn
-      const playerInfo = getPlayerInfo(playerId)
-
-      return `
-        <li style="--player-color: ${player.color}" class="${isTurn ? 'your-turn' : ''} ${player.isEliminated ? 'eliminated' : ''}">
-          <img src="${playerInfo.avatarUrl}" />
-          <span>${playerInfo.displayName}${isYou ? " (You)" : ""}</span>
-        </li>
-      `
-    })
-    .join("")
+  // Render current turn display
+  const currentPlayerInfo = getPlayerInfo(game.turn);
+  const currentPlayerColor = game.players[game.turn].color;
+  turnDisplay.innerHTML = `
+    <div class="turn-indicator" style="--player-color: ${currentPlayerColor}">
+      <img src="${currentPlayerInfo.avatarUrl}" />
+      <span>${currentPlayerInfo.displayName}'s Turn</span>
+    </div>
+  `;
     
     // Show winner
     if (game.winner) {
@@ -111,10 +104,9 @@ function processExplosionQueue() {
 Rune.initClient({
   onChange: ({ game, yourPlayerId }) => {
     currentGame = game; // Keep a global reference to the latest game state
-    if (!Object.keys(playerColors).length) {
-        for(const pId in game.players) {
-            playerColors[pId] = game.players[pId].color
-        }
+    playerColors = {}; // Clear existing colors
+    for(const pId in game.players) {
+        playerColors[pId] = game.players[pId].color
     }
     render(game, yourPlayerId)
 
