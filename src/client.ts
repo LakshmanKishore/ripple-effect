@@ -72,11 +72,19 @@ function render(game: GameState, yourPlayerId: string | undefined) {
   // Render board
   board.innerHTML = game.cells.map((cell, i) => getCellHtml(cell, i, game)).join("")
 
-  // Dim screen and disable input during AI turn
-  if (game.isAiTurn) {
-    document.body.classList.add("ai-turn")
+  // Dim screen and disable input when it's not your turn or during AI turn
+  const isYourTurn = yourPlayerId && yourPlayerId === game.turn;
+  if (game.isAiTurn || !isYourTurn) {
+    document.body.classList.add("dim-screen");
   } else {
-    document.body.classList.remove("ai-turn")
+    document.body.classList.remove("dim-screen");
+  }
+
+  // Specific class for AI turn if needed for other styles
+  if (game.isAiTurn) {
+    document.body.classList.add("ai-turn");
+  } else {
+    document.body.classList.remove("ai-turn");
   }
 
   // Attach event listeners and set disabled state

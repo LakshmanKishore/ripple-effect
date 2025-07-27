@@ -230,14 +230,27 @@ header {
     to { transform: scale(1.05); }
 }
 
-/* AI Turn Overlay */
+/* Dim Screen for non-active players / AI turn */
+body.dim-screen {
+  opacity: 0.7;
+  pointer-events: none; /* Disable all interactions on the body */
+}
+
+body.dim-screen #board {
+  opacity: 0.8; /* Further dim the board */
+}
+
+body.dim-screen .cell {
+  cursor: not-allowed;
+}
+
+/* AI Turn Overlay (can be combined with dim-screen if desired, or kept separate for specific AI styling) */
 .ai-turn #board {
-  opacity: 0.6;
-  pointer-events: none;
+  /* This rule can be removed if dim-screen handles all cases */
 }
 
 .ai-turn .cell {
-  cursor: not-allowed;
+  /* This rule can be removed if dim-screen handles all cases */
 }
 
 /* Responsive Adjustments */
