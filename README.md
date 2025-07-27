@@ -2,6 +2,22 @@
 
 A turn-based strategy game where players compete to control the grid by placing nanobots and triggering chain reactions.
 
+## How to Play
+
+**Objective:** Conquer the board by expanding your nanobot army!
+
+**Gameplay:**
+
+*   Players take turns placing nanobots on empty cells or cells they already own.
+*   Each cell has a capacity (1, 2, or 3 nanobots).
+*   When a cell's capacity is exceeded, it "explodes"!
+*   Exploding nanobots spread to adjacent cells, converting them to your color and increasing their count.
+*   If an explosion causes an adjacent cell to exceed its capacity, it also explodes, creating a chain reaction!
+
+**Winning:** Be the last player with nanobots on the board!
+
+**Elimination:** If you have no nanobots left after your turn (and after the first round), you are eliminated.
+
 ## Development Approach
 
 This game was built using the Rune platform, with the game logic written in TypeScript. The development process followed these steps:

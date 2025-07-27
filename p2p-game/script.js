@@ -167,7 +167,7 @@ sendMessageBtn.onclick = () => {
         messageInput.value = '';
     } else {
         console.error('Data channel not open. Current state:', dataChannel ? dataChannel.readyState : 'null');
-        """        gameMessagesDiv.innerHTML += '<p>Error: Data channel not open.</p>';
+        gameMessagesDiv.innerHTML += '<p>Error: Data channel not open.</p>';
     }
 };
 

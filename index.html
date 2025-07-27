@@ -11,11 +11,22 @@
   <body>
     <header>
       <h1 class="game-title">Ripple Effect</h1>
+      <button id="how-to-play-button" class="help-button">?</button>
     </header>
     <main>
       <div id="turn-indicator-container"></div>
       <div id="board" class="initial"></div>
     </main>
+
+    <div id="how-to-play-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>How to Play Ripple Effect</h2>
+        <div id="how-to-play-text">
+          <!-- Instructions will be loaded here by JavaScript -->
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/logic.ts"></script>
     <script type="module" src="/src/client.ts"></script>
   </body>

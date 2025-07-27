@@ -233,18 +233,21 @@ header {
 /* Dim Screen for non-active players / AI turn */
 body.dim-screen {
   opacity: 0.7;
-  pointer-events: none; /* Disable all interactions on the body */
 }
 
 body.dim-screen #board {
   opacity: 0.8; /* Further dim the board */
+  pointer-events: none; /* Disable interactions on the board */
 }
 
 body.dim-screen .cell {
   cursor: not-allowed;
 }
 
-/* AI Turn Overlay (can be combined with dim-screen if desired, or kept separate for specific AI styling) */
+body.dim-screen .help-button,
+body.dim-screen .close-button {
+  pointer-events: auto; /* Re-enable pointer events for the help button and close button */
+}
 .ai-turn #board {
   /* This rule can be removed if dim-screen handles all cases */
 }
@@ -258,4 +261,95 @@ body.dim-screen .cell {
     .game-title {
         font-size: 2.2rem;
     }
+}
+
+/* How to Play Button */
+.help-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(0, 229, 255, 0.2);
+  border: 1px solid var(--neon-blue);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 1.2em;
+  color: var(--neon-blue);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.help-button:hover {
+  background-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 10px var(--neon-blue);
+}
+
+/* Modal Styles */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1001; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0, 0, 0, 0.8); /* Black w/ opacity */
+  backdrop-filter: blur(5px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(5px); /* Safari support */
+  justify-content: center;
+}
+
+.modal-content {
+  background-color: var(--bg-color);
+  margin: auto;
+  padding: 20px;
+  border: 1px solid var(--neon-blue);
+  border-radius: 10px;
+  width: 80%;
+  max-width: 500px;
+  box-shadow: 0 0 20px var(--neon-blue);
+  position: relative;
+  color: white;
+  text-align: left;
+}
+
+.modal-content h2 {
+  color: var(--neon-green);
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 1.8em;
+}
+
+.modal-content p, .modal-content li {
+  font-size: 0.95em;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.modal-content ul {
+  list-style-type: disc;
+  margin-left: 20px;
+  margin-bottom: 10px;
+}
+
+.close-button {
+  color: #aaa;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
 }

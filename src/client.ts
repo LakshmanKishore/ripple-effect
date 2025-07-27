@@ -1,18 +1,20 @@
 import "./styles.css"
-import type { GameState, Cell, PlayerId } from "./logic"
+import type { GameState, Cell } from "./logic"
 import { getNanobotMaskSVG, getNanobotFrameSVG } from "./assets/nanobot.ts"
-import explosionSound from "./assets/jump.wav";
+import explosionSound from "./assets/jump.wav"
 
-const explosionAudio = new Audio(explosionSound);
-explosionAudio.playbackRate = 2;
+const explosionAudio = new Audio(explosionSound)
+explosionAudio.playbackRate = 2
 
 const board = document.getElementById("board")!
-const turnIndicatorContainer = document.getElementById("turn-indicator-container")!
+const turnIndicatorContainer = document.getElementById(
+  "turn-indicator-container"
+)!
 
 let playerColors: { [key: string]: string } = {}
 
 // Global game state reference
-let currentGame: GameState | null = null;
+let currentGame: GameState | null = null
 
 // Helper to get player info, including AI
 function getPlayerInfo(playerId: string) {
@@ -26,28 +28,28 @@ function getPlayerInfo(playerId: string) {
   return Rune.getPlayerInfo(playerId)
 }
 
-function getCellHtml(cell: Cell, cellIndex: number, game: GameState) {
+function getCellHtml(cell: Cell, cellIndex: number) {
   let content = ""
   if (cell.owner) {
     const color = playerColors[cell.owner]
-    const isOverloaded = cell.count > cell.capacity;
-    
-    let containerClass = "nanobot-container";
+    const isOverloaded = cell.count > cell.capacity
+
+    let containerClass = "nanobot-container"
     if (isOverloaded) {
-      containerClass += " overloaded";
+      containerClass += " overloaded"
     } else {
-      containerClass += ` nanobot-count-${cell.count}`;
+      containerClass += ` nanobot-count-${cell.count}`
     }
 
     const playerInfo = getPlayerInfo(cell.owner)
 
-    const avatarStyle = `background-image: url('${playerInfo.avatarUrl}'); --nanobot-mask: url('data:image/svg+xml,${encodeURIComponent(getNanobotMaskSVG())}');`;
-    const frameStyle = `--nanobot-frame: url('data:image/svg+xml,${encodeURIComponent(getNanobotFrameSVG(color))}');`;
+    const avatarStyle = `background-image: url('${playerInfo.avatarUrl}'); --nanobot-mask: url('data:image/svg+xml,${encodeURIComponent(getNanobotMaskSVG())}');`
+    const frameStyle = `--nanobot-frame: url('data:image/svg+xml,${encodeURIComponent(getNanobotFrameSVG(color))}');`
 
     const nanobotContent = `<div class="nanobot">
         <div class="nanobot-avatar" style="${avatarStyle}"></div>
         <div class="nanobot-frame" style="${frameStyle}"></div>
-      </div>`.repeat(cell.count);
+      </div>`.repeat(cell.count)
 
     content = `<div class="${containerClass}">${nanobotContent}</div>`
   }
@@ -56,80 +58,84 @@ function getCellHtml(cell: Cell, cellIndex: number, game: GameState) {
 
 // This function will be called by the event listener.
 function handleCellClick(event: Event) {
-  const cellEl = event.currentTarget as HTMLElement;
+  const cellEl = event.currentTarget as HTMLElement
   const cellIndex = parseInt(cellEl.dataset.cellIndex!)
 
-  if (currentGame && (currentGame.isAiTurn || currentGame.explosionQueue.length > 0)) {
-    return;
+  if (
+    currentGame &&
+    (currentGame.isAiTurn || currentGame.explosionQueue.length > 0)
+  ) {
+    return
   }
-  Rune.actions.place({ cellIndex, fromBot: false });
+  Rune.actions.place({ cellIndex, fromBot: false })
 }
 
 function render(game: GameState, yourPlayerId: string | undefined) {
   // Update global game state reference
-  currentGame = game;
+  currentGame = game
 
   // Render board
-  board.innerHTML = game.cells.map((cell, i) => getCellHtml(cell, i, game)).join("")
+  board.innerHTML = game.cells.map((cell, i) => getCellHtml(cell, i)).join("")
 
   // Dim screen and disable input when it's not your turn or during AI turn
-  const isYourTurn = yourPlayerId && yourPlayerId === game.turn;
+  const isYourTurn = yourPlayerId && yourPlayerId === game.turn
   if (game.isAiTurn || !isYourTurn) {
-    document.body.classList.add("dim-screen");
+    document.body.classList.add("dim-screen")
   } else {
-    document.body.classList.remove("dim-screen");
+    document.body.classList.remove("dim-screen")
   }
 
   // Specific class for AI turn if needed for other styles
   if (game.isAiTurn) {
-    document.body.classList.add("ai-turn");
+    document.body.classList.add("ai-turn")
   } else {
-    document.body.classList.remove("ai-turn");
+    document.body.classList.remove("ai-turn")
   }
 
   // Attach event listeners and set disabled state
   for (const cellEl of board.querySelectorAll(".cell")) {
-    cellEl.removeEventListener("click", handleCellClick);
-    cellEl.addEventListener("click", handleCellClick);
-    (cellEl as HTMLButtonElement).disabled = game.isAiTurn || game.explosionQueue.length > 0;
+    cellEl.removeEventListener("click", handleCellClick)
+    cellEl.addEventListener("click", handleCellClick)
+    ;(cellEl as HTMLButtonElement).disabled =
+      game.isAiTurn || game.explosionQueue.length > 0
   }
 
   // Render current turn display
-  const currentPlayerInfo = getPlayerInfo(game.turn);
-  const currentPlayerColor = game.players[game.turn].color;
+  const currentPlayerInfo = getPlayerInfo(game.turn)
+  const currentPlayerColor = game.players[game.turn].color
   turnIndicatorContainer.innerHTML = `
     <div class="turn-indicator" style="--player-color: ${currentPlayerColor}">
       <img src="${currentPlayerInfo.avatarUrl}" />
       <span>${currentPlayerInfo.displayName}'s Turn</span>
     </div>
-  `;
-    
-    // Show winner
-    if (game.winner) {
-        const winnerInfo = getPlayerInfo(game.winner)
-        const winnerColor = playerColors[game.winner]
-        board.innerHTML += `<div class="winner-overlay" style="--winner-color: ${winnerColor}">
+  `
+
+  // Show winner
+  if (game.winner) {
+    const winnerInfo = getPlayerInfo(game.winner)
+    const winnerColor = playerColors[game.winner]
+    board.innerHTML += `<div class="winner-overlay" style="--winner-color: ${winnerColor}">
             <h2>${winnerInfo.displayName} Wins!</h2>
         </div>`
-    }
+  }
 }
 
-let botMoveTimer: number | null = null;
-let explosionInterval: number | null = null;
+let botMoveTimer: number | null = null
+let explosionInterval: number | null = null
 
 function processExplosionQueue() {
   if (currentGame && currentGame.explosionQueue.length > 0) {
-    explosionAudio.play();
-    Rune.actions.processExplosion();
+    explosionAudio.play()
+    Rune.actions.processExplosion()
   }
 }
 
 Rune.initClient({
   onChange: ({ game, yourPlayerId }) => {
-    currentGame = game; // Keep a global reference to the latest game state
-    playerColors = {}; // Clear existing colors
-    for(const pId in game.players) {
-        playerColors[pId] = game.players[pId].color
+    currentGame = game // Keep a global reference to the latest game state
+    playerColors = {} // Clear existing colors
+    for (const pId in game.players) {
+      playerColors[pId] = game.players[pId].color
     }
     render(game, yourPlayerId)
 
@@ -166,11 +172,44 @@ Rune.initClient({
         if (validCells.length > 0) {
           const randomIndex = Math.floor(Math.random() * validCells.length)
           const cellToPlay = validCells[randomIndex]
-          Rune.actions.place({ cellIndex: cellToPlay, fromBot: true });
-        } else {
+          Rune.actions.place({ cellIndex: cellToPlay, fromBot: true })
         }
         botMoveTimer = null // Clear timer after move
       }, 1000) // 1 second delay for AI move
     }
   },
 })
+
+// How to Play Modal Logic
+const howToPlayButton = document.getElementById("how-to-play-button")!;
+const howToPlayModal = document.getElementById("how-to-play-modal")!;
+const closeButton = howToPlayModal.querySelector(".close-button")!;
+const howToPlayText = document.getElementById("how-to-play-text")!;
+
+howToPlayText.innerHTML = `
+  <p><strong>Objective:</strong> Conquer the board by expanding your nanobot army!</p>
+  <p><strong>Gameplay:</strong></p>
+  <ul>
+    <li>Players take turns placing nanobots on empty cells or cells they already own.</li>
+    <li>Each cell has a capacity (1, 2, or 3 nanobots).</li>
+    <li>When a cell's capacity is exceeded, it "explodes"!</li>
+    <li>Exploding nanobots spread to adjacent cells, converting them to your color and increasing their count.</li>
+    <li>If an explosion causes an adjacent cell to exceed its capacity, it also explodes, creating a chain reaction!</li>
+  </ul>
+  <p><strong>Winning:</strong> Be the last player with nanobots on the board!</p>
+  <p><strong>Elimination:</strong> If you have no nanobots left after your turn (and after the first round), you are eliminated.</p>
+`;
+
+howToPlayButton.addEventListener("click", () => {
+  howToPlayModal.style.display = "block";
+});
+
+closeButton.addEventListener("click", () => {
+  howToPlayModal.style.display = "none";
+});
+
+window.addEventListener("click", (event) => {
+  if (event.target === howToPlayModal) {
+    howToPlayModal.style.display = "none";
+  }
+});
