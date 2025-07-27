@@ -1,6 +1,6 @@
 import "./styles.css"
-import type { GameState, Cell } from "./logic"
-import { nanobotSVG } from "./assets/nanobot.ts"
+import type { GameState, Cell, PlayerId } from "./logic"
+import { getNanobotMaskSVG, getNanobotFrameSVG } from "./assets/nanobot.ts"
 
 const board = document.getElementById("board")!
 const turnIndicatorContainer = document.getElementById("turn-indicator-container")!
@@ -15,7 +15,7 @@ function getPlayerInfo(playerId: string) {
   if (playerId === "ai") {
     return {
       displayName: "AI Bot",
-      avatarUrl: `data:image/svg+xml,${encodeURIComponent(`<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="5" fill="black"/></svg>`)}`,
+      avatarUrl: "/src/assets/robot.png",
       playerId: "ai",
     }
   }
@@ -35,8 +35,17 @@ function getCellHtml(cell: Cell, cellIndex: number, game: GameState) {
       containerClass += ` nanobot-count-${cell.count}`;
     }
 
-    const nanobotContent = `<div class="nanobot"></div>`.repeat(cell.count);
-    content = `<div class="${containerClass}" style="--player-color: ${color};">${nanobotContent}</div>`
+    const playerInfo = getPlayerInfo(cell.owner)
+
+    const avatarStyle = `background-image: url('${playerInfo.avatarUrl}'); --nanobot-mask: url('data:image/svg+xml,${encodeURIComponent(getNanobotMaskSVG())}');`;
+    const frameStyle = `--nanobot-frame: url('data:image/svg+xml,${encodeURIComponent(getNanobotFrameSVG(color))}');`;
+
+    const nanobotContent = `<div class="nanobot">
+        <div class="nanobot-avatar" style="${avatarStyle}"></div>
+        <div class="nanobot-frame" style="${frameStyle}"></div>
+      </div>`.repeat(cell.count);
+
+    content = `<div class="${containerClass}">${nanobotContent}</div>`
   }
   return `<button class="cell" data-cell-index="${cellIndex}">${content}</button>`
 }
@@ -91,9 +100,6 @@ function render(game: GameState, yourPlayerId: string | undefined) {
             <h2>${winnerInfo.displayName} Wins!</h2>
         </div>`
     }
-    
-    // Set nanobot icon as a CSS variable
-    document.documentElement.style.setProperty('--nanobot-icon', `url("data:image/svg+xml,${encodeURIComponent(nanobotSVG)}")`);
 }
 
 let botMoveTimer: number | null = null;
