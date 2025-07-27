@@ -234,15 +234,17 @@ Rune.initLogic({
           }
         }
 
-        game.players["ai"] = { id: "ai", color: aiColor, isEliminated: false, hasPlacedFirstBot: false }
-        delete game.players[playerId]; // Remove the leaving player's data
-
-        // Transfer leaving player's nanobots to the bot
+        // Clear the cells of the leaving player
         game.cells.forEach(cell => {
           if (cell.owner === playerId) {
-            cell.owner = "ai"
+            cell.owner = null;
+            cell.count = 0;
           }
-        })
+        });
+
+        // Now, re-assign the AI to the leaving player's slot
+        game.players["ai"] = { id: "ai", color: aiColor, isEliminated: false, hasPlacedFirstBot: false };
+        delete game.players[playerId];
         // If it was leaving player's turn, transfer turn to bot
         if (game.turn === playerId) {
           game.turn = "ai"

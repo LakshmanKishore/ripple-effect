@@ -1,6 +1,10 @@
 import "./styles.css"
 import type { GameState, Cell, PlayerId } from "./logic"
 import { getNanobotMaskSVG, getNanobotFrameSVG } from "./assets/nanobot.ts"
+import explosionSound from "./assets/jump.wav";
+
+const explosionAudio = new Audio(explosionSound);
+explosionAudio.playbackRate = 2;
 
 const board = document.getElementById("board")!
 const turnIndicatorContainer = document.getElementById("turn-indicator-container")!
@@ -107,6 +111,7 @@ let explosionInterval: number | null = null;
 
 function processExplosionQueue() {
   if (currentGame && currentGame.explosionQueue.length > 0) {
+    explosionAudio.play();
     Rune.actions.processExplosion();
   }
 }
