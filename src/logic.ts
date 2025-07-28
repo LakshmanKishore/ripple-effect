@@ -106,16 +106,12 @@ Rune.initLogic({
 
       if (isFromBot) {
         actualPlayer = "ai"
-        if (!game.isAiTurn)
-          throw Rune.invalidAction()
+        if (!game.isAiTurn) throw Rune.invalidAction()
       } else {
-        if (playerId === undefined)
-          throw Rune.invalidAction()
+        if (playerId === undefined) throw Rune.invalidAction()
         actualPlayer = playerId
-        if (game.isAiTurn)
-          throw Rune.invalidAction()
-        if (actualPlayer !== game.turn)
-          throw Rune.invalidAction()
+        if (game.isAiTurn) throw Rune.invalidAction()
+        if (actualPlayer !== game.turn) throw Rune.invalidAction()
       }
 
       const cell = game.cells[cellIndex]

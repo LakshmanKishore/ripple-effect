@@ -2,6 +2,7 @@ import "./styles.css"
 import type { GameState, Cell } from "./logic"
 import { getNanobotMaskSVG, getNanobotFrameSVG } from "./assets/nanobot.ts"
 import explosionSound from "./assets/jump.wav"
+import robotAvatar from "./assets/robot.png"
 
 const explosionAudio = new Audio(explosionSound)
 explosionAudio.playbackRate = 2
@@ -21,7 +22,7 @@ function getPlayerInfo(playerId: string) {
   if (playerId === "ai") {
     return {
       displayName: "AI Bot",
-      avatarUrl: "/src/assets/robot.png",
+      avatarUrl: robotAvatar,
       playerId: "ai",
     }
   }
@@ -181,10 +182,10 @@ Rune.initClient({
 })
 
 // How to Play Modal Logic
-const howToPlayButton = document.getElementById("how-to-play-button")!;
-const howToPlayModal = document.getElementById("how-to-play-modal")!;
-const closeButton = howToPlayModal.querySelector(".close-button")!;
-const howToPlayText = document.getElementById("how-to-play-text")!;
+const howToPlayButton = document.getElementById("how-to-play-button")!
+const howToPlayModal = document.getElementById("how-to-play-modal")!
+const closeButton = howToPlayModal.querySelector(".close-button")!
+const howToPlayText = document.getElementById("how-to-play-text")!
 
 howToPlayText.innerHTML = `
   <p><strong>Objective:</strong> Conquer the board by expanding your nanobot army!</p>
@@ -198,18 +199,18 @@ howToPlayText.innerHTML = `
   </ul>
   <p><strong>Winning:</strong> Be the last player with nanobots on the board!</p>
   <p><strong>Elimination:</strong> If you have no nanobots left after your turn (and after the first round), you are eliminated.</p>
-`;
+`
 
 howToPlayButton.addEventListener("click", () => {
-  howToPlayModal.style.display = "block";
-});
+  howToPlayModal.style.display = "block"
+})
 
 closeButton.addEventListener("click", () => {
-  howToPlayModal.style.display = "none";
-});
+  howToPlayModal.style.display = "none"
+})
 
 window.addEventListener("click", (event) => {
   if (event.target === howToPlayModal) {
-    howToPlayModal.style.display = "none";
+    howToPlayModal.style.display = "none"
   }
-});
+})
